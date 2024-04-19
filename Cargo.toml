@@ -1,0 +1,20 @@
+[package]
+name = "input_middleware"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["all"]
+all = ["kmbox_net"]
+kmbox_net = ["socket2", "rand"]
+
+[dependencies]
+socket2 = { version = "0.5.6", optional = true }
+rand = { version = "0.8", optional = true }
+log = "0.4"
+thiserror = { version = "1" }
+
+[dev-dependencies]
+simple_logger = "4"

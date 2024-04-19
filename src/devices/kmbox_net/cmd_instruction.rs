@@ -1,0 +1,16 @@
+pub const CMD_CONNECT: u32 = 0xaf3c2828;
+pub const CMD_MOUSE_MOVE: u32 = 0xaede7345;
+pub const CMD_MOUSE_LEFT: u32 = 0x9823AE8D;
+pub const CMD_MOUSE_MIDDLE: u32 = 0x97a3AE8D;
+pub const CMD_MOUSE_RIGHT: u32 = 0x238d8212;
+pub const CMD_MOUSE_WHEEL: u32 = 0xffeead38;
+pub const CMD_MOUSE_AUTOMOVE: u32 = 0xaede7346;
+pub const CMD_KEYBOARD_ALL: u32 = 0x123c2c2f;
+pub const CMD_REBOOT: u32 = 0xaa8855aa;
+pub const CMD_BAZER_MOVE: u32 = 0xa238455a;
+pub const CMD_MONITOR: u32 = 0x27388020;
+pub const CMD_DEBUG: u32 = 0x27382021;
+pub const CMD_MASK_MOUSE: u32 = 0x23234343;
+pub const CMD_UNMASK_ALL: u32 = 0x23344343;
+pub const CMD_SETCONFIG: u32 = 0x1d3d3323;
+pub const CMD_SHOWPIC: u32 = 0x12334883;
