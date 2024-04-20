@@ -222,7 +222,7 @@ impl KeyboardKey {
             Self::KEY_RIGHTSHIFT => 0xE5,
             Self::KEY_RIGHTALT => 0xE6,
             Self::KEY_RIGHT_GUI => 0xE7,
-            _ => panic!("Invalid KeyboardKey"),
+            // _ => panic!("Invalid KeyboardKey"),
         }
     }
 }

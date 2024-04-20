@@ -23,7 +23,8 @@ use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
 use input_middleware::{InputDevice, InputMiddleware};
 
 fn main() {
-    let config = KMBoxNetConfig::default_with_uuid("XXXXXXXX");
+    let uuid = env!("KMBOX_UUID");
+    let config = KMBoxNetConfig::default_with_uuid(uuid);
     let input_device = InputMiddleware::new(InputDevice::KMBoxNet(config));
     match input_device {
         Ok(mut input_device) => {
@@ -43,8 +44,8 @@ use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
 use input_middleware::{InputDevice, InputMiddleware};
 
 fn main() {
-    simple_logger::init_with_level(log::Level::Debug).unwrap();
-    let config = KMBoxNetConfig::default_with_uuid("XXXXXXXX");
+    let uuid = env!("KMBOX_UUID");
+    let config = KMBoxNetConfig::default_with_uuid(uuid);
     let km = KMBoxNet::new(config);
     match km {
         Ok(mut km) => {

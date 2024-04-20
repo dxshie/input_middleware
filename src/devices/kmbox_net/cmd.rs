@@ -4,6 +4,7 @@ use super::cmd_instruction::{
     CMD_MOUSE_WHEEL, CMD_REBOOT, CMD_SETCONFIG, CMD_SHOWPIC, CMD_UNMASK_ALL,
 };
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy)]
 pub enum CMD {
     CONNECT,

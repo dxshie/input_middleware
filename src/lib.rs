@@ -1,16 +1,22 @@
-//! # Input Middleware
-//! This library is a collection of input devices and utilities for handling input events.
+//! # Input Middlware
 //!
-//! ## Features
-//! - KMBoxNet: A networked input device that can send keyboard and mouse events to a KMBoxNet device.
+//! ## Synopsis
+//! Input Middlware is a crate that implements various hardware devices that act as a middleman between input devices and the computer.
+//! Each device may have it's own way of connecting and communicating which is abstracted away in this crate.
 //!
-//! ## Usage
+//! # Supported Devices
+//!
+//! - ✅ KMBox_Net (SOCKET)
+//! - ❌ KMBox_B (COM) (i don't own that one feel free to do a PR)
+//! - ... open a issue if you want more support or create a PR
+//!
+//! # Example
 //! ```rust
 //!
 //! use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
 //! use input_middleware::{InputDevice, InputMiddleware};
 //!    
-//! let config = KMBoxNetConfig::default_with_uuid("XXXXXXX");
+//! let config = KMBoxNetConfig::default_with_uuid(env!("KMBOX_UUID"));
 //! let km = KMBoxNet::new(config);
 //! match km {
 //!   Ok(mut km) => {

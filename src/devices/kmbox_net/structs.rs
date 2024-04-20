@@ -16,6 +16,7 @@ pub union CmdData {
     pub cmd_keyboard: SoftKeyboard,
 }
 
+#[allow(dead_code)]
 impl CmdData {
     /// # Safety
     /// Accessing the union field is unsafe

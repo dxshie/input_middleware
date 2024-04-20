@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub const KEY_NONE: u8 = 0x00;
 pub const KEY_ERRORROLLOVER: u8 = 0x01;
 pub const KEY_POSTFAIL: u8 = 0x02;
