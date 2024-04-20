@@ -3,24 +3,24 @@ use std::{mem::MaybeUninit, net::SocketAddr};
 use log::{debug, error, info};
 use socket2::{Domain, Protocol, Socket, Type};
 
-use crate::devices::kmbox_net::{
-    cmd::CMD,
-    errors::{KMBoxNetConnectionError, KMBoxNetSendError},
-    structs::CmdData,
-};
-
-use self::{
+use crate::{
     button_state::{ButtonState, MwheelState},
-    keyboard::KeyboardKey,
-    structs::ClientTx,
+    devices::kmbox_net::{
+        cmd::CMD,
+        errors::{KMBoxNetConnectionError, KMBoxNetSendError},
+        structs::CmdData,
+    },
+    keyboardkeys::KeyboardKey,
+    InputMiddlewareDeviceAction,
 };
 
-pub mod button_state;
+use self::structs::ClientTx;
+
 pub mod cmd;
 mod cmd_instruction;
 pub mod errors;
 mod key_instructions;
-pub mod keyboard;
+mod keyboard;
 mod structs;
 
 fn to_hex(src: &str, len: usize) -> u32 {
@@ -50,14 +50,50 @@ pub struct KMBoxNet {
     tx: MaybeUninit<structs::ClientTx>,
 }
 
+#[derive(Debug, Clone)]
+pub struct KMBoxNetConfig {
+    pub ip: String,
+    pub port: u16,
+    pub uuid: String,
+}
+
+impl Default for KMBoxNetConfig {
+    fn default() -> Self {
+        Self {
+            ip: "192.168.2.188".into(),
+            port: 16824,
+            uuid: "XXXXXXXX".into(),
+        }
+    }
+}
+
+impl KMBoxNetConfig {
+    pub fn default_with_uuid(uuid: &str) -> Self {
+        Self::default().set_uuid(uuid.into())
+    }
+
+    pub fn new(ip: &str, port: u16, uuid: &str) -> Self {
+        Self {
+            ip: ip.into(),
+            port,
+            uuid: uuid.into(),
+        }
+    }
+
+    pub fn set_uuid(mut self, uuid: String) -> Self {
+        self.uuid = uuid;
+        self
+    }
+}
+
 impl KMBoxNet {
-    pub fn new(ip: String, port: u16, uuid: String) -> Result<Self, KMBoxNetConnectionError> {
+    pub fn new(config: KMBoxNetConfig) -> Result<Self, KMBoxNetConnectionError> {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
-        let socket_addr = SocketAddr::new(ip.parse().unwrap(), port);
+        let socket_addr = SocketAddr::new(config.ip.parse().unwrap(), config.port);
         let rand = rand::random::<u32>();
         let tx = ClientTx {
             head: structs::CmdHead {
-                mac: to_hex(uuid.as_str(), 4),
+                mac: to_hex(&config.uuid, 4),
                 rand,
                 indexpts: 0,
                 cmd: CMD::CONNECT.into(),
@@ -110,6 +146,7 @@ impl KMBoxNet {
         })
     }
 
+    /// Set the timeout for the socket
     pub fn set_timeout(&mut self, timeout: std::time::Duration) -> Result<(), std::io::Error> {
         self.socket.set_read_timeout(Some(timeout))?;
         self.socket.set_write_timeout(Some(timeout))?;
@@ -117,6 +154,7 @@ impl KMBoxNet {
         Ok(())
     }
 
+    /// Send a keyboard keydown event
     pub fn keyboard_keydown(&mut self, key: KeyboardKey) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         let key = key as u8;
@@ -130,6 +168,7 @@ impl KMBoxNet {
         Ok(())
     }
 
+    /// keybord keyup
     pub fn keyboard_keyup(&mut self, key: KeyboardKey) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         let key = key as u8;
@@ -145,6 +184,7 @@ impl KMBoxNet {
         Ok(())
     }
 
+    /// mouse left click
     pub fn mouse_left_click(
         &mut self,
         state: impl Into<ButtonState>,
@@ -158,6 +198,7 @@ impl KMBoxNet {
         Ok(())
     }
 
+    /// mouse right click
     pub fn mouse_right_click(
         &mut self,
         state: impl Into<ButtonState>,
@@ -171,6 +212,7 @@ impl KMBoxNet {
         Ok(())
     }
 
+    /// use the mouse scroll wheel
     pub fn mouse_wheel(&mut self, state: impl Into<MwheelState>) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         tx.data.cmd_mouse.wheel = Into::into(state.into());
@@ -209,9 +251,33 @@ impl KMBoxNet {
         tx.head.rand = rand::random::<u32>();
         debug!("Send command tx.head\n{:?}", tx.head);
         unsafe {
-            let CmdData { cmd_mouse } = tx.data;
-            {
-                debug!("Send data tx.data\n{:?}", cmd_mouse);
+            match cmd {
+                CMD::MOUSE_MOVE
+                | CMD::MOUSE_LEFT
+                | CMD::MOUSE_MIDDLE
+                | CMD::MOUSE_RIGHT
+                | CMD::MOUSE_WHEEL
+                | CMD::MOUSE_AUTOMOVE => {
+                    let CmdData { cmd_mouse } = tx.data;
+                    {
+                        debug!("Send Mouse data tx.data\n{:?}", cmd_mouse);
+                    }
+                }
+                CMD::KEYBOARD_ALL => {
+                    let CmdData { cmd_keyboard } = tx.data;
+                    {
+                        debug!("Send Keyboard data tx.data\n{:?}", cmd_keyboard);
+                    }
+                }
+                CMD::CONNECT => {} // no logging needed
+                CMD::REBOOT => {}  // no logging needed
+                CMD::BAZER_MOVE => unimplemented!("bazer move not implemented"),
+                CMD::MONITOR => unimplemented!("monitor not implemented"),
+                CMD::DEBUG => unimplemented!("debug not implemented"),
+                CMD::MASK_MOUSE => unimplemented!("mask mouse not implemented"),
+                CMD::UNMASK_ALL => unimplemented!("unmask all not implemented"),
+                CMD::SETCONFIG => unimplemented!("setconfig not implemented"),
+                CMD::SHOWPIC => unimplemented!("showpic not implemented"),
             }
         }
         self.socket
@@ -240,5 +306,74 @@ impl KMBoxNet {
             unsafe { rx.data.cmd_mouse }
         );
         Ok(())
+    }
+}
+
+impl InputMiddlewareDeviceAction for KMBoxNet {
+    fn keyboard_keydown(
+        &mut self,
+        key: KeyboardKey,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        self.keyboard_keydown(key).map_err(|e| e.into())
+    }
+
+    fn keyboard_keyup(
+        &mut self,
+        key: KeyboardKey,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        self.keyboard_keyup(key).map_err(|e| e.into())
+    }
+
+    fn mouse_left_click(
+        &mut self,
+        state: ButtonState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        self.mouse_left_click(state).map_err(|e| e.into())
+    }
+
+    fn mouse_right_click(
+        &mut self,
+        state: ButtonState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        self.mouse_right_click(state).map_err(|e| e.into())
+    }
+
+    fn mouse_middle_click(
+        &mut self,
+        _: ButtonState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        unimplemented!()
+    }
+
+    fn mouse_side1_click(
+        &mut self,
+        _: ButtonState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        unimplemented!()
+    }
+
+    fn mouse_side2_click(
+        &mut self,
+        _: ButtonState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        unimplemented!()
+    }
+
+    fn mouse_wheel_click(
+        &mut self,
+        _: ButtonState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        unimplemented!()
+    }
+
+    fn mouse_wheel(
+        &mut self,
+        state: MwheelState,
+    ) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        self.mouse_wheel(state).map_err(|e| e.into())
+    }
+
+    fn mouse_move(&mut self, pos: [i32; 2]) -> Result<(), crate::errors::InputMiddlewareSendError> {
+        self.mouse_move(pos).map_err(|e| e.into())
     }
 }

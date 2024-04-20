@@ -54,3 +54,20 @@ pub struct SoftKeyboard {
     pub resvel: char,
     pub button: [char; 10],
 }
+
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct MonitorKeyboardData {
+    pub report_id: char,
+    pub buttons: char,
+    pub data: [char; 10],
+}
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct MonitorMouseData {
+    pub report_id: char,
+    pub button: i32, // 8 buttons
+    pub x: i32,      // -32767 to 32767
+    pub y: i32,      // -32767 to 32767
+    pub wheel: i32,  // -32767 to 32767
+}
