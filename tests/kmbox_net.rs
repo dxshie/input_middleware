@@ -1,7 +1,9 @@
+use ::serial_test::{parallel, serial};
 // TODO:
 // set the kmbox in monitor mode to assert the mouse move and other actions that can be asserted
 #[cfg(test)]
-mod test {
+#[parallel]
+mod parallel_tests {
     use input_middleware::button_state::{ButtonState, MwheelState};
     use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
     use input_middleware::keyboardkeys::KeyboardKey;
@@ -23,13 +25,13 @@ mod test {
     #[test]
     fn monitor() {
         simple_logger::init_with_level(log::Level::Debug).unwrap();
-        if let Ok(mut km) = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID)) {
-            if let Ok(mut bind) = km.monitor() {
-                if let Ok(_) = bind.bind() {
+        if let Ok(km) = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID)) {
+            if let Ok(mut km_monitor) = km.into_monitor() {
+                if let Ok(_) = km_monitor.bind() {
                     let time_to_stop =
                         std::time::Instant::now() + std::time::Duration::from_secs(10);
                     while std::time::Instant::now() < time_to_stop {
-                        if let Ok(data) = bind.recv_monitor_data() {
+                        if let Ok(data) = km_monitor.recv_monitor_data() {
                             println!("{:?}", data);
                         }
                     }
@@ -86,17 +88,6 @@ mod test {
     }
 
     #[test]
-    fn reboot() {
-        let km = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID));
-        match km {
-            Ok(mut km) => {
-                km.reboot().unwrap();
-            }
-            Err(_) => println!("Failed to connect to KMBox Net"),
-        }
-    }
-
-    #[test]
     fn keyboard_keyevent() {
         let km = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID));
         match km {
@@ -119,6 +110,23 @@ mod test {
             Err(e) => {
                 println!("Error: {:?}", e);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+#[serial]
+mod serial_test {
+    use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
+    const UUID: &'static str = env!("KMBOX_UUID");
+    #[test]
+    fn reboot() {
+        let km = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID));
+        match km {
+            Ok(mut km) => {
+                km.reboot().unwrap();
+            }
+            Err(_) => println!("Failed to connect to KMBox Net"),
         }
     }
 }

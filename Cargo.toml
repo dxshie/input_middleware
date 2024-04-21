@@ -20,3 +20,4 @@ thiserror = { version = "1" }
 
 [dev-dependencies]
 simple_logger = "4"
+serial_test = "3"

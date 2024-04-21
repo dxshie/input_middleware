@@ -25,7 +25,7 @@ mod cmd_instruction;
 pub mod errors;
 mod key_instructions;
 mod keyboard;
-mod structs;
+pub(crate) mod structs;
 
 fn to_hex(src: &str, len: usize) -> u32 {
     let mut dest: [u32; 16] = [0; 16];
@@ -48,11 +48,18 @@ fn to_hex(src: &str, len: usize) -> u32 {
 
 /// T can be ClientTx or MonitorData
 #[derive(Debug)]
-pub struct KMBoxNet<T = ClientTx> {
+pub struct KMBoxNet {
     socket: Socket,
     socket_addr: SocketAddr,
-    rx: MaybeUninit<T>,
-    tx: MaybeUninit<T>,
+    rx: MaybeUninit<ClientTx>,
+    tx: MaybeUninit<ClientTx>,
+}
+
+#[derive(Debug)]
+pub struct KMBoxNetMonitor {
+    socket: Socket,
+    socket_addr: SocketAddr,
+    monitor: MaybeUninit<MonitorData>,
 }
 
 #[derive(Debug, Clone)]
@@ -91,7 +98,19 @@ impl KMBoxNetConfig {
     }
 }
 
-impl KMBoxNet<MonitorData> {
+impl KMBoxNetMonitor {
+    pub fn new(socket_addr: SocketAddr) -> Self {
+        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
+        let mut socket_addr = SocketAddr::from(socket_addr);
+        socket_addr.set_port(socket_addr.port() + 1);
+        socket_addr.set_ip(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+        Self {
+            socket: socket,
+            socket_addr: socket_addr,
+            monitor: MaybeUninit::new(MonitorData::default()),
+        }
+    }
+
     pub fn bind(&mut self) -> Result<(), KMBoxNetConnectionError> {
         debug!("Bind local Monitor for KMBoxNet at {:?}", self.socket_addr);
         self.socket
@@ -110,26 +129,16 @@ impl KMBoxNet<MonitorData> {
         self.socket
             .recv_from(unsafe {
                 std::slice::from_raw_parts_mut(
-                    self.rx.as_mut_ptr() as *mut _,
+                    self.monitor.as_mut_ptr() as *mut _,
                     std::mem::size_of::<MonitorData>(),
                 )
             })
             .map_err(KMBoxNetConnectionError)?;
-        Ok(unsafe { self.rx.assume_init() })
+        Ok(unsafe { self.monitor.assume_init() })
     }
 }
 
-impl<T> KMBoxNet<T> {
-    /// Set the timeout for the socket
-    pub fn set_timeout(&mut self, timeout: std::time::Duration) -> Result<(), std::io::Error> {
-        self.socket.set_read_timeout(Some(timeout))?;
-        self.socket.set_write_timeout(Some(timeout))?;
-        debug!("Timeout set to {:?}", timeout);
-        Ok(())
-    }
-}
-
-impl KMBoxNet<ClientTx> {
+impl KMBoxNet {
     pub fn new(config: KMBoxNetConfig) -> Result<Self, KMBoxNetConnectionError> {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
         let socket_addr = SocketAddr::new(config.ip.parse().unwrap(), config.port);
@@ -187,6 +196,14 @@ impl KMBoxNet<ClientTx> {
             tx: MaybeUninit::new(tx),
             rx: MaybeUninit::new(rx),
         })
+    }
+
+    /// Set the timeout for the socket
+    pub fn set_timeout(&mut self, timeout: std::time::Duration) -> Result<(), std::io::Error> {
+        self.socket.set_read_timeout(Some(timeout))?;
+        self.socket.set_write_timeout(Some(timeout))?;
+        debug!("Timeout set to {:?}", timeout);
+        Ok(())
     }
 
     /// Send a keyboard keydown event
@@ -294,7 +311,7 @@ impl KMBoxNet<ClientTx> {
     /// Monitor the KMBoxNet
     /// This will return a new KMBoxNet instance that can be used to monitor the KMBoxNet
     /// This is useful for getting the current state of the KMBoxNet attached devices
-    pub fn monitor(&mut self) -> Result<KMBoxNet<MonitorData>, KMBoxNetSendError> {
+    pub fn into_monitor(mut self) -> Result<KMBoxNetMonitor, KMBoxNetSendError> {
         debug!("Monitor KMBoxNet");
         let tx = unsafe { self.tx.assume_init_mut() };
         tx.head.indexpts += 1;
@@ -319,17 +336,7 @@ impl KMBoxNet<ClientTx> {
                 )
             })
             .map_err(KMBoxNetSendError)?;
-        let _ = unsafe { self.rx.assume_init() };
-        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
-        let mut socket_addr = SocketAddr::from(self.socket_addr);
-        socket_addr.set_port(socket_addr.port() + 1);
-        socket_addr.set_ip(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
-        Ok(KMBoxNet {
-            socket: socket,
-            socket_addr: socket_addr,
-            rx: MaybeUninit::new(MonitorData::default()),
-            tx: MaybeUninit::new(MonitorData::default()),
-        })
+        Ok(KMBoxNetMonitor::new(self.socket_addr))
     }
 
     /// # Safety
