@@ -19,7 +19,7 @@ input_middleware = { git = "https://github.com/dxshie/input_middleware" }
 ## InputMiddleware dyn trait Abstraction
 
 ```rust
-use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
+use input_middleware::devices::kmbox_net::KMBoxNetConfig;
 use input_middleware::{InputDevice, InputMiddleware};
 
 fn main() {
@@ -41,7 +41,6 @@ fn main() {
 
 ```rust
 use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
-use input_middleware::{InputDevice, InputMiddleware};
 
 fn main() {
     let uuid = env!("KMBOX_UUID");

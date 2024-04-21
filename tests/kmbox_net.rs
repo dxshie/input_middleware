@@ -21,6 +21,24 @@ mod test {
     }
 
     #[test]
+    fn monitor() {
+        simple_logger::init_with_level(log::Level::Debug).unwrap();
+        if let Ok(mut km) = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID)) {
+            if let Ok(mut bind) = km.monitor() {
+                if let Ok(_) = bind.bind() {
+                    let time_to_stop =
+                        std::time::Instant::now() + std::time::Duration::from_secs(10);
+                    while std::time::Instant::now() < time_to_stop {
+                        if let Ok(data) = bind.recv_monitor_data() {
+                            println!("{:?}", data);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn move_the_mouse_1px() {
         let km = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID));
         match km {
@@ -67,16 +85,16 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn reboot() {
-    //     let km = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID));
-    //     match km {
-    //         Ok(mut km) => {
-    //             km.reboot();
-    //         }
-    //         Err(_) => println!("Failed to connect to KMBox Net"),
-    //     }
-    // }
+    #[test]
+    fn reboot() {
+        let km = KMBoxNet::new(KMBoxNetConfig::default_with_uuid(UUID));
+        match km {
+            Ok(mut km) => {
+                km.reboot().unwrap();
+            }
+            Err(_) => println!("Failed to connect to KMBox Net"),
+        }
+    }
 
     #[test]
     fn keyboard_keyevent() {

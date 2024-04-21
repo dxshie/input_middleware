@@ -48,6 +48,29 @@ impl From<CMD> for u32 {
     }
 }
 
+impl From<CMD> for String {
+    fn from(value: CMD) -> Self {
+        match value {
+            CMD::CONNECT => "CONNECT".to_string(),
+            CMD::MOUSE_MOVE => "MOUSE_MOVE".to_string(),
+            CMD::MOUSE_LEFT => "MOUSE_LEFT".to_string(),
+            CMD::MOUSE_MIDDLE => "MOUSE_MIDDLE".to_string(),
+            CMD::MOUSE_RIGHT => "MOUSE_RIGHT".to_string(),
+            CMD::MOUSE_WHEEL => "MOUSE_WHEEL".to_string(),
+            CMD::MOUSE_AUTOMOVE => "MOUSE_AUTOMOVE".to_string(),
+            CMD::KEYBOARD_ALL => "KEYBOARD_ALL".to_string(),
+            CMD::REBOOT => "REBOOT".to_string(),
+            CMD::BAZER_MOVE => "BAZER_MOVE".to_string(),
+            CMD::MONITOR => "MONITOR".to_string(),
+            CMD::DEBUG => "DEBUG".to_string(),
+            CMD::MASK_MOUSE => "MASK_MOUSE".to_string(),
+            CMD::UNMASK_ALL => "UNMASK_ALL".to_string(),
+            CMD::SETCONFIG => "SETCONFIG".to_string(),
+            CMD::SHOWPIC => "SHOWPIC".to_string(),
+        }
+    }
+}
+
 impl From<u32> for CMD {
     fn from(cmd: u32) -> Self {
         match cmd {

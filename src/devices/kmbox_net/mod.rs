@@ -1,4 +1,8 @@
-use std::{mem::MaybeUninit, net::SocketAddr};
+use std::{
+    mem::MaybeUninit,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    time::Duration,
+};
 
 use log::{debug, error, info};
 use socket2::{Domain, Protocol, Socket, Type};
@@ -14,7 +18,7 @@ use crate::{
     InputMiddlewareDeviceAction,
 };
 
-use self::structs::ClientTx;
+use self::structs::{ClientTx, MonitorData};
 
 pub mod cmd;
 mod cmd_instruction;
@@ -42,12 +46,13 @@ fn to_hex(src: &str, len: usize) -> u32 {
     dest[0] << 24 | dest[1] << 16 | dest[2] << 8 | dest[3]
 }
 
+/// T can be ClientTx or MonitorData
 #[derive(Debug)]
-pub struct KMBoxNet {
+pub struct KMBoxNet<T = ClientTx> {
     socket: Socket,
     socket_addr: SocketAddr,
-    rx: MaybeUninit<structs::ClientTx>,
-    tx: MaybeUninit<structs::ClientTx>,
+    rx: MaybeUninit<T>,
+    tx: MaybeUninit<T>,
 }
 
 #[derive(Debug, Clone)]
@@ -86,7 +91,45 @@ impl KMBoxNetConfig {
     }
 }
 
-impl KMBoxNet {
+impl KMBoxNet<MonitorData> {
+    pub fn bind(&mut self) -> Result<(), KMBoxNetConnectionError> {
+        debug!("Bind local Monitor for KMBoxNet at {:?}", self.socket_addr);
+        self.socket
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        self.socket
+            .set_write_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        self.socket
+            .bind(&self.socket_addr.into())
+            .map_err(KMBoxNetConnectionError)?;
+        Ok(())
+    }
+
+    pub fn recv_monitor_data(&mut self) -> Result<MonitorData, KMBoxNetConnectionError> {
+        self.socket
+            .recv_from(unsafe {
+                std::slice::from_raw_parts_mut(
+                    self.rx.as_mut_ptr() as *mut _,
+                    std::mem::size_of::<MonitorData>(),
+                )
+            })
+            .map_err(KMBoxNetConnectionError)?;
+        Ok(unsafe { self.rx.assume_init() })
+    }
+}
+
+impl<T> KMBoxNet<T> {
+    /// Set the timeout for the socket
+    pub fn set_timeout(&mut self, timeout: std::time::Duration) -> Result<(), std::io::Error> {
+        self.socket.set_read_timeout(Some(timeout))?;
+        self.socket.set_write_timeout(Some(timeout))?;
+        debug!("Timeout set to {:?}", timeout);
+        Ok(())
+    }
+}
+
+impl KMBoxNet<ClientTx> {
     pub fn new(config: KMBoxNetConfig) -> Result<Self, KMBoxNetConnectionError> {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
         let socket_addr = SocketAddr::new(config.ip.parse().unwrap(), config.port);
@@ -146,24 +189,18 @@ impl KMBoxNet {
         })
     }
 
-    /// Set the timeout for the socket
-    pub fn set_timeout(&mut self, timeout: std::time::Duration) -> Result<(), std::io::Error> {
-        self.socket.set_read_timeout(Some(timeout))?;
-        self.socket.set_write_timeout(Some(timeout))?;
-        debug!("Timeout set to {:?}", timeout);
-        Ok(())
-    }
-
     /// Send a keyboard keydown event
     pub fn keyboard_keydown(&mut self, key: KeyboardKey) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         let key = key as u8;
-        // for i in 0..10 {
-        unsafe {
-            tx.data.cmd_keyboard.button[0] = key as char;
+        for i in 0..10 {
+            unsafe {
+                if tx.data.cmd_keyboard.button[i] == 0 as char {
+                    tx.data.cmd_keyboard.button[i] = key as char;
+                }
+            }
         }
-        // }
-        info!("Keyboard key set tx\n{:?}", unsafe { tx.data.cmd_keyboard });
+        debug!("Keyboard key set tx\n{:?}", unsafe { tx.data.cmd_keyboard });
         self.send(CMD::KEYBOARD_ALL)?;
         Ok(())
     }
@@ -172,14 +209,14 @@ impl KMBoxNet {
     pub fn keyboard_keyup(&mut self, key: KeyboardKey) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         let key = key as u8;
-        // for i in 0..10 {
-        unsafe {
-            if tx.data.cmd_keyboard.button[0] == key as char {
-                tx.data.cmd_keyboard.button[0] = 0 as char;
+        for i in 0..10 {
+            unsafe {
+                if tx.data.cmd_keyboard.button[i] == key as char {
+                    tx.data.cmd_keyboard.button[i] = 0 as char;
+                }
             }
         }
-        // }
-        info!("Keyboard key set tx\n{:?}", unsafe { tx.data.cmd_keyboard });
+        debug!("Keyboard key set tx\n{:?}", unsafe { tx.data.cmd_keyboard });
         self.send(CMD::KEYBOARD_ALL)?;
         Ok(())
     }
@@ -191,7 +228,7 @@ impl KMBoxNet {
     ) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         tx.data.cmd_mouse.button = Into::into(state.into());
-        info!("Mouse left button set tx\n{:?}", unsafe {
+        debug!("Mouse left button set tx\n{:?}", unsafe {
             tx.data.cmd_mouse
         });
         self.send(CMD::MOUSE_LEFT)?;
@@ -205,10 +242,24 @@ impl KMBoxNet {
     ) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         tx.data.cmd_mouse.button = Into::into(state.into());
-        info!("Mouse right button set tx\n{:?}", unsafe {
+        debug!("Mouse right button set tx\n{:?}", unsafe {
             tx.data.cmd_mouse
         });
         self.send(CMD::MOUSE_RIGHT)?;
+        Ok(())
+    }
+
+    /// mouse middle wheel click
+    pub fn mouse_middle_click(
+        &mut self,
+        state: impl Into<ButtonState>,
+    ) -> Result<(), KMBoxNetSendError> {
+        let tx = unsafe { self.tx.assume_init_mut() };
+        tx.data.cmd_mouse.button = Into::into(state.into());
+        debug!("Mouse right button set tx\n{:?}", unsafe {
+            tx.data.cmd_mouse
+        });
+        self.send(CMD::MOUSE_MIDDLE)?;
         Ok(())
     }
 
@@ -216,7 +267,7 @@ impl KMBoxNet {
     pub fn mouse_wheel(&mut self, state: impl Into<MwheelState>) -> Result<(), KMBoxNetSendError> {
         let tx = unsafe { self.tx.assume_init_mut() };
         tx.data.cmd_mouse.wheel = Into::into(state.into());
-        info!("Mouse wheel set tx\n{:?}", unsafe { tx.data.cmd_mouse });
+        debug!("Mouse wheel set tx\n{:?}", unsafe { tx.data.cmd_mouse });
         self.send(CMD::MOUSE_WHEEL)?;
         Ok(())
     }
@@ -238,6 +289,47 @@ impl KMBoxNet {
         debug!("Rebooting KMBoxNet");
         self.send(CMD::REBOOT)?;
         Ok(())
+    }
+
+    /// Monitor the KMBoxNet
+    /// This will return a new KMBoxNet instance that can be used to monitor the KMBoxNet
+    /// This is useful for getting the current state of the KMBoxNet attached devices
+    pub fn monitor(&mut self) -> Result<KMBoxNet<MonitorData>, KMBoxNetSendError> {
+        debug!("Monitor KMBoxNet");
+        let tx = unsafe { self.tx.assume_init_mut() };
+        tx.head.indexpts += 1;
+        tx.head.cmd = CMD::MONITOR.into();
+        tx.head.rand = self.socket_addr.port() as u32 + 1_u32 | 0xaa55_u32 << 16_u32;
+        self.socket
+            .send_to(
+                unsafe {
+                    std::slice::from_raw_parts(
+                        tx as *const structs::ClientTx as *const u8,
+                        std::mem::size_of::<structs::ClientTx>(),
+                    )
+                },
+                &self.socket_addr.into(),
+            )
+            .map_err(KMBoxNetSendError)?;
+        self.socket
+            .recv_from(unsafe {
+                std::slice::from_raw_parts_mut(
+                    self.rx.as_mut_ptr() as *mut _,
+                    std::mem::size_of::<structs::ClientTx>(),
+                )
+            })
+            .map_err(KMBoxNetSendError)?;
+        let _ = unsafe { self.rx.assume_init() };
+        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
+        let mut socket_addr = SocketAddr::from(self.socket_addr);
+        socket_addr.set_port(socket_addr.port() + 1);
+        socket_addr.set_ip(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+        Ok(KMBoxNet {
+            socket: socket,
+            socket_addr: socket_addr,
+            rx: MaybeUninit::new(MonitorData::default()),
+            tx: MaybeUninit::new(MonitorData::default()),
+        })
     }
 
     /// # Safety
@@ -340,30 +432,30 @@ impl InputMiddlewareDeviceAction for KMBoxNet {
 
     fn mouse_middle_click(
         &mut self,
-        _: ButtonState,
+        state: ButtonState,
     ) -> Result<(), crate::errors::InputMiddlewareSendError> {
-        unimplemented!()
+        self.mouse_middle_click(state).map_err(|e| e.into())
     }
 
     fn mouse_side1_click(
         &mut self,
         _: ButtonState,
     ) -> Result<(), crate::errors::InputMiddlewareSendError> {
-        unimplemented!()
+        unimplemented!("not possible on kmbox net")
     }
 
     fn mouse_side2_click(
         &mut self,
         _: ButtonState,
     ) -> Result<(), crate::errors::InputMiddlewareSendError> {
-        unimplemented!()
+        unimplemented!("not possible on kmbox net")
     }
 
     fn mouse_wheel_click(
         &mut self,
-        _: ButtonState,
+        state: ButtonState,
     ) -> Result<(), crate::errors::InputMiddlewareSendError> {
-        unimplemented!()
+        self.mouse_middle_click(state).map_err(|e| e.into())
     }
 
     fn mouse_wheel(
