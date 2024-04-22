@@ -27,6 +27,7 @@ mod key_instructions;
 mod keyboard;
 pub(crate) mod structs;
 
+/// Convert a hex string to a u32
 fn to_hex(src: &str, len: usize) -> u32 {
     let mut dest: [u32; 16] = [0; 16];
     for i in 0..len {
@@ -51,7 +52,9 @@ fn to_hex(src: &str, len: usize) -> u32 {
 pub struct KMBoxNet {
     socket: Socket,
     socket_addr: SocketAddr,
+    /// rx is the response from the kmbox
     rx: MaybeUninit<ClientTx>,
+    /// tx is the request to the kmbox
     tx: MaybeUninit<ClientTx>,
 }
 
@@ -67,6 +70,8 @@ pub struct KMBoxNetConfig {
     pub ip: String,
     pub port: u16,
     pub uuid: String,
+    /// default timeout is 3 seconds
+    pub timeout: Duration,
 }
 
 impl Default for KMBoxNetConfig {
@@ -75,6 +80,7 @@ impl Default for KMBoxNetConfig {
             ip: "192.168.2.188".into(),
             port: 16824,
             uuid: "XXXXXXXX".into(),
+            timeout: Duration::from_secs(3),
         }
     }
 }
@@ -89,7 +95,13 @@ impl KMBoxNetConfig {
             ip: ip.into(),
             port,
             uuid: uuid.into(),
+            timeout: Duration::from_secs(3),
         }
+    }
+
+    pub fn set_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
     }
 
     pub fn set_uuid(mut self, uuid: String) -> Self {
@@ -111,6 +123,7 @@ impl KMBoxNetMonitor {
         }
     }
 
+    /// binds a socket to localhost so the kmbox can connect to that socket and send the data
     pub fn bind(&mut self) -> Result<(), KMBoxNetConnectionError> {
         debug!("Bind local Monitor for KMBoxNet at {:?}", self.socket_addr);
         self.socket
@@ -125,6 +138,7 @@ impl KMBoxNetMonitor {
         Ok(())
     }
 
+    /// receive the monitor data
     pub fn recv_monitor_data(&mut self) -> Result<MonitorData, KMBoxNetConnectionError> {
         self.socket
             .recv_from(unsafe {
@@ -153,12 +167,8 @@ impl KMBoxNet {
             data: structs::CmdData { u8buff: [0; 1024] },
         };
         debug!("Connecting to KMBox Net\n{:#?}", tx.head);
-        socket
-            .set_read_timeout(Some(std::time::Duration::from_secs(3)))
-            .unwrap();
-        socket
-            .set_write_timeout(Some(std::time::Duration::from_secs(3)))
-            .unwrap();
+        socket.set_read_timeout(Some(config.timeout)).unwrap();
+        socket.set_write_timeout(Some(config.timeout)).unwrap();
         socket
             .send_to(
                 unsafe {
