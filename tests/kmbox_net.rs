@@ -1,4 +1,10 @@
 use ::serial_test::{parallel, serial};
+
+pub fn connection_fail_assert(e: std::io::Error) {
+    println!("Failed to connect to KMBox Net: {e}");
+    assert!(false)
+}
+
 // TODO:
 // set the kmbox in monitor mode to assert the mouse move and other actions that can be asserted
 #[cfg(test)]
@@ -8,6 +14,8 @@ mod parallel_tests {
     use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
     use input_middleware::keyboardkeys::KeyboardKey;
     use input_middleware::{InputDevice, InputMiddleware};
+
+    use crate::connection_fail_assert;
 
     /// The UUID of the KMBox Net device. Set your environment variable to the UUID of your KMBox Net device before running the tests.
     /// PS: $Env:KMBOX_UUID = "XXXXXXX"
@@ -37,6 +45,8 @@ mod parallel_tests {
                     }
                 }
             }
+        } else {
+            assert!(false);
         }
     }
 
@@ -46,8 +56,9 @@ mod parallel_tests {
         match km {
             Ok(mut km) => {
                 km.mouse_move([1, 1]).unwrap();
+                assert!(true);
             }
-            Err(_) => println!("Failed to connect to KMBox Net"),
+            Err(e) => connection_fail_assert(e.0),
         }
     }
 
@@ -58,8 +69,9 @@ mod parallel_tests {
             Ok(mut km) => {
                 km.mouse_left_click(ButtonState::Pressed).unwrap();
                 km.mouse_left_click(ButtonState::Released).unwrap();
+                assert!(true);
             }
-            Err(_) => println!("Failed to connect to KMBox Net"),
+            Err(e) => connection_fail_assert(e.0),
         }
     }
 
@@ -71,7 +83,7 @@ mod parallel_tests {
                 km.mouse_right_click(ButtonState::Pressed).unwrap();
                 km.mouse_right_click(ButtonState::Released).unwrap();
             }
-            Err(_) => println!("Failed to connect to KMBox Net"),
+            Err(e) => connection_fail_assert(e.0),
         }
     }
 
@@ -83,7 +95,7 @@ mod parallel_tests {
                 km.mouse_wheel(MwheelState::Up(5)).unwrap();
                 km.mouse_wheel(MwheelState::Down(10)).unwrap();
             }
-            Err(_) => println!("Failed to connect to KMBox Net"),
+            Err(e) => connection_fail_assert(e.0),
         }
     }
 
@@ -95,7 +107,7 @@ mod parallel_tests {
                 km.keyboard_keydown(KeyboardKey::KEY_A).unwrap();
                 km.keyboard_keyup(KeyboardKey::KEY_A).unwrap();
             }
-            Err(_) => println!("Failed to connect to KMBox Net"),
+            Err(e) => connection_fail_assert(e.0),
         }
     }
 
@@ -107,9 +119,7 @@ mod parallel_tests {
             Ok(mut input_device) => {
                 input_device.mouse_move([50, 50]).expect("mouse to move");
             }
-            Err(e) => {
-                println!("Error: {:?}", e);
-            }
+            Err(e) => connection_fail_assert(e.0),
         }
     }
 }
@@ -126,7 +136,7 @@ mod serial_test {
             Ok(mut km) => {
                 km.reboot().unwrap();
             }
-            Err(_) => println!("Failed to connect to KMBox Net"),
+            Err(e) => super::connection_fail_assert(e.0),
         }
     }
 }

@@ -19,5 +19,6 @@ log = "0.4"
 thiserror = { version = "1" }
 
 [dev-dependencies]
-simple_logger = "4"
+simple_logger = "5"
 serial_test = "3"
+rand = "0.8"
