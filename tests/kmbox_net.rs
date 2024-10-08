@@ -9,6 +9,7 @@ pub fn connection_fail_assert(e: std::io::Error) {
 // set the kmbox in monitor mode to assert the mouse move and other actions that can be asserted
 #[cfg(test)]
 #[parallel]
+#[cfg(feature = "kmbox_net")]
 mod parallel_tests {
     use input_middleware::button_state::{ButtonState, MwheelState};
     use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
@@ -126,6 +127,7 @@ mod parallel_tests {
 
 #[cfg(test)]
 #[serial]
+#[cfg(feature = "kmbox_net")]
 mod serial_test {
     use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
     const UUID: &'static str = env!("KMBOX_UUID");

@@ -6,6 +6,8 @@
 //!
 //! # Supported Devices
 //!
+//! - ✅ Enigo (SysCall) [windows, linux]
+//! - ✅ QMP Qemu (TCP Stream)
 //! - ✅ KMBox_Net (SOCKET)
 //! - ❌ KMBox_B (COM) (i don't own that one feel free to do a PR)
 //! - ... open a issue if you want more support or create a PR
@@ -29,7 +31,7 @@
 
 use button_state::{ButtonState, MwheelState};
 #[cfg(feature = "kmbox_net")]
-use devices::kmbox_net::KMBoxNetConfig;
+use devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
 #[cfg(feature = "qmp")]
 use devices::qmp::{QMPConfig, QMPConnection};
 #[cfg(feature = "syscall")]
@@ -41,7 +43,6 @@ pub mod button_state;
 pub mod devices;
 pub mod errors;
 pub mod keyboardkeys;
-use devices::kmbox_net::KMBoxNet;
 
 #[derive(Debug, Clone)]
 pub enum InputDevice {
@@ -53,6 +54,7 @@ pub enum InputDevice {
     QMP(QMPConfig),
 }
 
+/// InputMiddleware is the main struct that is used to create a new input device.
 pub struct InputMiddleware;
 
 impl InputMiddleware {
@@ -84,14 +86,24 @@ impl InputMiddleware {
 
 /// The InputMiddlewareDeviceAction trait is used to define the actions that can be performed on an input device.
 pub trait InputMiddlewareDeviceAction {
+    /// Press a key
     fn keyboard_keydown(&mut self, key: KeyboardKey) -> Result<(), InputMiddlewareSendError>;
+    /// Release a key
     fn keyboard_keyup(&mut self, key: KeyboardKey) -> Result<(), InputMiddlewareSendError>;
+    /// click the mouse left
     fn mouse_left_click(&mut self, state: ButtonState) -> Result<(), InputMiddlewareSendError>;
+    /// click the mouse right
     fn mouse_right_click(&mut self, state: ButtonState) -> Result<(), InputMiddlewareSendError>;
+    /// click the mouse middle
     fn mouse_middle_click(&mut self, state: ButtonState) -> Result<(), InputMiddlewareSendError>;
+    /// click the mouse side1
     fn mouse_side1_click(&mut self, state: ButtonState) -> Result<(), InputMiddlewareSendError>;
+    /// click the mouse side2
     fn mouse_side2_click(&mut self, state: ButtonState) -> Result<(), InputMiddlewareSendError>;
+    /// click the mouse wheel
     fn mouse_wheel_click(&mut self, state: ButtonState) -> Result<(), InputMiddlewareSendError>;
+    /// Move the mouse wheel.
     fn mouse_wheel(&mut self, state: MwheelState) -> Result<(), InputMiddlewareSendError>;
+    /// Move the mouse to the given position relative.
     fn mouse_move(&mut self, pos: [i32; 2]) -> Result<(), InputMiddlewareSendError>;
 }
