@@ -10,6 +10,7 @@ input_middleware = { git = "https://github.com/dxshie/input_middleware" }
 
 # Supported Devices
 
+- ✅ Enigo (SysCall) [windows, linux]
 - ✅ KMBox_Net (SOCKET)
 - ❌ KMBox_B (COM) (i don't own that one feel free to do a PR)
 - ... open a issue if you want more support or create a PR

@@ -28,7 +28,9 @@
 //! ```
 
 use button_state::{ButtonState, MwheelState};
-use devices::kmbox_net::KMBoxNetConfig;
+use devices::qmp::{QMPConfig, QMPConnection};
+use devices::syscall::SysCallConfig;
+use devices::{kmbox_net::KMBoxNetConfig, syscall::SysCall};
 use errors::{InputMiddlewareConnectionError, InputMiddlewareSendError};
 use keyboardkeys::KeyboardKey;
 
@@ -38,13 +40,11 @@ pub mod errors;
 pub mod keyboardkeys;
 use devices::kmbox_net::KMBoxNet;
 
-// The devices that are supported by this library.
-// TODO: Add more devices here.
-// add layer of abstraction to device initialization
-// pass enum to select device
 #[derive(Debug, Clone)]
 pub enum InputDevice {
     KMBoxNet(KMBoxNetConfig),
+    SysCall(SysCallConfig),
+    QMP(QMPConfig),
 }
 
 pub struct InputMiddleware;
@@ -58,6 +58,16 @@ impl InputMiddleware {
                 let km = KMBoxNet::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
                 return Ok(Box::new(km));
+            }
+            InputDevice::SysCall(config) => {
+                let syscall = SysCall::new(config.clone())
+                    .map_err(|e| InputMiddlewareConnectionError(e.0))?;
+                return Ok(Box::new(syscall));
+            }
+            InputDevice::QMP(config) => {
+                let qmp = QMPConnection::new(config.clone())
+                    .map_err(|e| InputMiddlewareConnectionError(e.0))?;
+                return Ok(Box::new(qmp));
             }
         }
     }
