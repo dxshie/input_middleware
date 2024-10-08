@@ -28,9 +28,12 @@
 //! ```
 
 use button_state::{ButtonState, MwheelState};
+#[cfg(feature = "kmbox_net")]
+use devices::kmbox_net::KMBoxNetConfig;
+#[cfg(feature = "qmp")]
 use devices::qmp::{QMPConfig, QMPConnection};
-use devices::syscall::SysCallConfig;
-use devices::{kmbox_net::KMBoxNetConfig, syscall::SysCall};
+#[cfg(feature = "syscall")]
+use devices::syscall::{SysCall, SysCallConfig};
 use errors::{InputMiddlewareConnectionError, InputMiddlewareSendError};
 use keyboardkeys::KeyboardKey;
 
@@ -42,8 +45,11 @@ use devices::kmbox_net::KMBoxNet;
 
 #[derive(Debug, Clone)]
 pub enum InputDevice {
+    #[cfg(feature = "kmbox_net")]
     KMBoxNet(KMBoxNetConfig),
+    #[cfg(feature = "syscall")]
     SysCall(SysCallConfig),
+    #[cfg(feature = "qmp")]
     QMP(QMPConfig),
 }
 
@@ -54,16 +60,19 @@ impl InputMiddleware {
         device: InputDevice,
     ) -> Result<Box<dyn InputMiddlewareDeviceAction>, InputMiddlewareConnectionError> {
         match device {
+            #[cfg(feature = "kmbox_net")]
             InputDevice::KMBoxNet(config) => {
                 let km = KMBoxNet::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
                 return Ok(Box::new(km));
             }
+            #[cfg(feature = "syscall")]
             InputDevice::SysCall(config) => {
                 let syscall = SysCall::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
                 return Ok(Box::new(syscall));
             }
+            #[cfg(feature = "qmp")]
             InputDevice::QMP(config) => {
                 let qmp = QMPConnection::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
