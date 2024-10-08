@@ -1,8 +1,9 @@
-//! # Input Middlware
+//! # Input Middleware
 //!
 //! ## Synopsis
-//! Input Middlware is a crate that implements various hardware devices that act as a middleman between input devices and the computer.
-//! Each device may have it's own way of connecting and communicating which is abstracted away in this crate.
+//!
+//! Input Middleware is a crate that implements various input methods that act as a middleman between input devices and the computer.
+//! Each method may have it's own way of connecting and communicating which is abstracted away in this crate.
 //!
 //! # Supported Devices
 //!
@@ -16,7 +17,7 @@
 //! ```rust
 //!
 //! use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
-//! use input_middleware::{InputDevice, InputMiddleware};
+//! use input_middleware::{InputDevice, InputMiddleware, InputMiddlewareDeviceAction};
 //!    
 //! let config = KMBoxNetConfig::default_with_uuid(env!("KMBOX_UUID"));
 //! let km = KMBoxNet::new(config);
