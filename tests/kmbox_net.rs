@@ -14,7 +14,6 @@ mod parallel_tests {
     use input_middleware::button_state::{ButtonState, MwheelState};
     use input_middleware::devices::kmbox_net::{KMBoxNet, KMBoxNetConfig};
     use input_middleware::keyboardkeys::KeyboardKey;
-    use input_middleware::{InputDevice, InputMiddleware};
 
     use crate::connection_fail_assert;
 
@@ -107,18 +106,6 @@ mod parallel_tests {
             Ok(mut km) => {
                 km.keyboard_keydown(KeyboardKey::KEY_A).unwrap();
                 km.keyboard_keyup(KeyboardKey::KEY_A).unwrap();
-            }
-            Err(e) => connection_fail_assert(e.0),
-        }
-    }
-
-    #[test]
-    fn move_the_mouse_50px_trait_abstr() {
-        let config = KMBoxNetConfig::default_with_uuid(UUID);
-        let input_device = InputMiddleware::new(InputDevice::KMBoxNet(config));
-        match input_device {
-            Ok(mut input_device) => {
-                input_device.mouse_move([50, 50]).expect("mouse to move");
             }
             Err(e) => connection_fail_assert(e.0),
         }

@@ -22,6 +22,9 @@ pub struct QMPConnection {
     stream: TcpStream,
 }
 
+unsafe impl Send for QMPConnection {}
+unsafe impl Sync for QMPConnection {}
+
 impl QMPConnection {
     pub fn new(config: QMPConfig) -> Result<QMPConnection, QMPConnectionError> {
         let stream = TcpStream::connect(format!("{}:{}", config.host, config.port))?;
@@ -99,7 +102,7 @@ impl InputMiddlewareDeviceAction for QMPConnection {
         let serialized =
             serde_json::to_vec(&msg).map_err(|e| InputMiddlewareSendError(e.into()))?;
         debug!("Sending mouse move to QMP: {:#?}", &msg);
-        self.stream.write(&*serialized)?;
+        self.stream.write_all(&serialized)?;
         self.stream.flush()?;
         Ok(())
     }

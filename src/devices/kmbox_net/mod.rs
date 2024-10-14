@@ -58,12 +58,18 @@ pub struct KMBoxNet {
     tx: MaybeUninit<ClientTx>,
 }
 
+unsafe impl Send for KMBoxNet {}
+unsafe impl Sync for KMBoxNet {}
+
 #[derive(Debug)]
 pub struct KMBoxNetMonitor {
     socket: Socket,
     socket_addr: SocketAddr,
     monitor: MaybeUninit<MonitorData>,
 }
+
+unsafe impl Send for KMBoxNetMonitor {}
+unsafe impl Sync for KMBoxNetMonitor {}
 
 #[derive(Debug, Clone)]
 pub struct KMBoxNetConfig {
@@ -113,12 +119,12 @@ impl KMBoxNetConfig {
 impl KMBoxNetMonitor {
     pub fn new(socket_addr: SocketAddr) -> Self {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP)).unwrap();
-        let mut socket_addr = SocketAddr::from(socket_addr);
+        let mut socket_addr = socket_addr;
         socket_addr.set_port(socket_addr.port() + 1);
         socket_addr.set_ip(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
         Self {
-            socket: socket,
-            socket_addr: socket_addr,
+            socket,
+            socket_addr,
             monitor: MaybeUninit::new(MonitorData::default()),
         }
     }
@@ -326,7 +332,7 @@ impl KMBoxNet {
         let tx = unsafe { self.tx.assume_init_mut() };
         tx.head.indexpts += 1;
         tx.head.cmd = CMD::MONITOR.into();
-        tx.head.rand = self.socket_addr.port() as u32 + 1_u32 | 0xaa55_u32 << 16_u32;
+        tx.head.rand = (self.socket_addr.port() as u32 + 1_u32) | 0xaa55_u32 << 16_u32;
         self.socket
             .send_to(
                 unsafe {

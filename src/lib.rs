@@ -67,26 +67,26 @@ impl InputMiddleware {
             InputDevice::KMBoxNet(config) => {
                 let km = KMBoxNet::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
-                return Ok(Box::new(km));
+                Ok(Box::new(km))
             }
             #[cfg(feature = "syscall")]
             InputDevice::SysCall(config) => {
                 let syscall = SysCall::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
-                return Ok(Box::new(syscall));
+                Ok(Box::new(syscall))
             }
             #[cfg(feature = "qmp")]
             InputDevice::QMP(config) => {
                 let qmp = QMPConnection::new(config.clone())
                     .map_err(|e| InputMiddlewareConnectionError(e.0))?;
-                return Ok(Box::new(qmp));
+                Ok(Box::new(qmp))
             }
         }
     }
 }
 
 /// The InputMiddlewareDeviceAction trait is used to define the actions that can be performed on an input device.
-pub trait InputMiddlewareDeviceAction {
+pub trait InputMiddlewareDeviceAction: Send + Sync {
     /// Press a key
     fn keyboard_keydown(&mut self, key: KeyboardKey) -> Result<(), InputMiddlewareSendError>;
     /// Release a key
