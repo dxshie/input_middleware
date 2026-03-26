@@ -1,7 +1,7 @@
 pub const CMD_CONNECT: u32 = 0xaf3c2828;
 pub const CMD_MOUSE_MOVE: u32 = 0xaede7345;
-pub const CMD_MOUSE_LEFT: u32 = 0x9823AE8D;
-pub const CMD_MOUSE_MIDDLE: u32 = 0x97a3AE8D;
+pub const CMD_MOUSE_LEFT: u32 = 0x9823ae8d;
+pub const CMD_MOUSE_MIDDLE: u32 = 0x97a3ae8d;
 pub const CMD_MOUSE_RIGHT: u32 = 0x238d8212;
 pub const CMD_MOUSE_WHEEL: u32 = 0xffeead38;
 pub const CMD_MOUSE_AUTOMOVE: u32 = 0xaede7346;

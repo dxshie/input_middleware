@@ -1,8 +1,9 @@
-# Input Middlware
+# Input Middleware
 
 ## Synopsis
-Input Middlware is a crate that implements various hardware devices that act as a middleman between input devices and the computer.
-Each device may have it's own way of connecting and communicating which is abstracted away in this crate.
+
+Input Middleware is a crate that implements various input methods that act as a middleman between input devices and the computer.
+Each method may have it's own way of connecting and communicating which is abstracted away in this crate.
 
 ```toml
 input_middleware = { git = "https://github.com/dxshie/input_middleware" }
@@ -10,6 +11,8 @@ input_middleware = { git = "https://github.com/dxshie/input_middleware" }
 
 # Supported Devices
 
+- ✅ Enigo (SysCall) [windows, linux]
+- ✅ QMP Qemu (TCP Stream)
 - ✅ KMBox_Net (SOCKET)
 - ❌ KMBox_B (COM) (i don't own that one feel free to do a PR)
 - ... open a issue if you want more support or create a PR

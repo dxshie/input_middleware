@@ -9,16 +9,24 @@ edition = "2021"
 
 [features]
 default = ["all"]
-all = ["kmbox_net"]
+all = ["kmbox_net", "syscall", "qmp"]
 kmbox_net = ["socket2", "rand"]
+syscall = ["enigo"]
+qmp = ["dep:serde_json"]
+qmp_tokio = ["dep:tokio", "dep:serde_json"]
 
 [dependencies]
 socket2 = { version = "0.5.6", optional = true }
 rand = { version = "0.8", optional = true }
 log = "0.4"
 thiserror = { version = "1" }
+enigo = { version = "0.2.1", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
+tokio = { version = "1.4", features = ["full"], optional = true }
 
 [dev-dependencies]
+tokio = { version = "1.4", features = ["full"] }
 simple_logger = "5"
 serial_test = "3"
 rand = "0.8"
