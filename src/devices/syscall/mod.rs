@@ -44,12 +44,12 @@ impl InputMiddlewareDeviceAction for SysCall {
         match state {
             crate::button_state::ButtonState::Pressed => {
                 self.0
-                    .key(Key::LButton, Direction::Press)
+                    .button(enigo::Button::Left, Direction::Press)
                     .map_err(SysCallSendError)?;
             }
             crate::button_state::ButtonState::Released => {
                 self.0
-                    .key(Key::LButton, Direction::Release)
+                    .button(enigo::Button::Left, Direction::Release)
                     .map_err(SysCallSendError)?;
             }
         }
@@ -63,12 +63,12 @@ impl InputMiddlewareDeviceAction for SysCall {
         match state {
             crate::button_state::ButtonState::Pressed => {
                 self.0
-                    .key(Key::RButton, Direction::Press)
+                    .button(enigo::Button::Right, Direction::Press)
                     .map_err(SysCallSendError)?;
             }
             crate::button_state::ButtonState::Released => {
                 self.0
-                    .key(Key::RButton, Direction::Release)
+                    .button(enigo::Button::Right, Direction::Release)
                     .map_err(SysCallSendError)?;
             }
         }
@@ -82,12 +82,12 @@ impl InputMiddlewareDeviceAction for SysCall {
         match state {
             crate::button_state::ButtonState::Pressed => {
                 self.0
-                    .key(Key::XButton1, Direction::Press)
+                    .button(enigo::Button::Middle, Direction::Press)
                     .map_err(SysCallSendError)?;
             }
             crate::button_state::ButtonState::Released => {
                 self.0
-                    .key(Key::XButton1, Direction::Release)
+                    .button(enigo::Button::Middle, Direction::Release)
                     .map_err(SysCallSendError)?;
             }
         }
@@ -101,12 +101,12 @@ impl InputMiddlewareDeviceAction for SysCall {
         match state {
             crate::button_state::ButtonState::Pressed => {
                 self.0
-                    .key(Key::XButton1, Direction::Press)
+                    .button(enigo::Button::Back, Direction::Press)
                     .map_err(SysCallSendError)?;
             }
             crate::button_state::ButtonState::Released => {
                 self.0
-                    .key(Key::XButton1, Direction::Release)
+                    .button(enigo::Button::Back, Direction::Release)
                     .map_err(SysCallSendError)?;
             }
         }
@@ -120,12 +120,12 @@ impl InputMiddlewareDeviceAction for SysCall {
         match state {
             crate::button_state::ButtonState::Pressed => {
                 self.0
-                    .key(Key::XButton2, Direction::Press)
+                    .button(enigo::Button::Forward, Direction::Press)
                     .map_err(SysCallSendError)?;
             }
             crate::button_state::ButtonState::Released => {
                 self.0
-                    .key(Key::XButton2, Direction::Release)
+                    .button(enigo::Button::Forward, Direction::Release)
                     .map_err(SysCallSendError)?;
             }
         }
@@ -139,12 +139,12 @@ impl InputMiddlewareDeviceAction for SysCall {
         match state {
             crate::button_state::ButtonState::Pressed => {
                 self.0
-                    .key(Key::XButton2, Direction::Press)
+                    .button(enigo::Button::Middle, Direction::Press)
                     .map_err(SysCallSendError)?;
             }
             crate::button_state::ButtonState::Released => {
                 self.0
-                    .key(Key::XButton2, Direction::Release)
+                    .button(enigo::Button::Middle, Direction::Release)
                     .map_err(SysCallSendError)?;
             }
         }
